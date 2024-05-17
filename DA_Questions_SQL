@@ -1,0 +1,260 @@
+-- Question 1
+
+-- Report how many rows and columns of data you have loaded.
+
+SELECT 
+	COUNT(*) 
+FROM
+	information_schema.columns
+WHERE 
+	table_name = 'taxi';
+
+
+SELECT
+	COUNT(*)
+FROM
+	taxi
+	
+
+-- Question 2
+
+-- Plot a histogram of the count of the trip distance 
+
+
+SELECT
+	MIN(trip_distance) min_distance,  MAX(trip_distance) max_distance
+FROM
+	taxi 
+
+
+CREATE TABLE distance_histogram as (
+	with cte as (
+		SELECT
+			WIDTH_BUCKET(trip_distance, 0, 10, 10) lower_bucket,
+			WIDTH_BUCKET(trip_distance, 10, 20, 2) medium_bucket,
+			WIDTH_BUCKET(trip_distance, 20, 700, 1) higher_bucket
+		FROM
+			taxi
+	), cte2 as (
+		SELECT
+			lower_bucket bucket_groups, COUNT(*) cnt
+		FROM
+			cte
+		WHERE
+			lower_bucket < 11
+		GROUP BY
+			1
+		UNION ALL
+		SELECT
+			CASE 
+				WHEN medium_bucket = 1 THEN 11
+				WHEN medium_bucket = 2 THEN 12
+			END
+		, COUNT(*) cnt
+		FROM
+			cte
+		GROUP BY
+			1
+		UNION ALL
+		SELECT
+			CASE 
+				WHEN higher_bucket = 1 THEN 13 END,
+			COUNT(*)
+		FROM
+			cte
+		GROUP BY
+			1
+	)
+	SELECT
+		bucket_groups, cnt
+	FROM
+		cte2
+	WHERE
+		bucket_groups is not null
+	ORDER BY
+		bucket_groups
+)
+
+
+-- Question 3
+
+-- Get general information of each fare_type (ratecodeid)
+	
+
+with num_cte as (
+	SELECT	
+		ratecodeid_info, COUNT(*) num_of_trips, 
+		ROUND(AVG(total_amount),2) avg_total, 
+		ROUND(AVG(trip_distance),2) avg_dist, 
+		ROUND(AVG(tip_amount),2) avg_tip, 
+		ROUND(AVG(passenger_count),2) avg_passenger
+	FROM
+		taxi t
+	JOIN
+		ratecode r ON t.ratecodeid = r.ratecodeid
+	GROUP BY
+		r.ratecodeid_info
+)
+SELECT
+	ratecodeid_info fare_type, num_of_trips, avg_dist, avg_total
+FROM
+	num_cte
+	
+
+-- Question 4
+
+-- Are there certain times where its cheaper? If so what are they?
+
+
+with total_trips_cte as (
+	SELECT
+		EXTRACT(hour FROM lpep_dropoff) hr, COUNT(*) total_trips
+	FROM
+		taxi
+	GROUP BY
+		hr
+), avg_price_per_hour_cte as (
+	SELECT
+		EXTRACT(hour FROM lpep_pickup) hr,
+		ROUND(AVG(total_amount - tip_amount),2) avg_total_price
+	FROM
+		taxi
+	GROUP BY
+		hr
+)
+SELECT
+	CASE 
+		WHEN h.hr = 0 THEN '12:00 am'
+		WHEN h.hr = 1 THEN '1:00 am'
+		WHEN h.hr = 2 THEN '2:00 am'
+		WHEN h.hr = 3 THEN '3:00 am'
+		WHEN h.hr = 4 THEN '4:00 am'
+		WHEN h.hr = 5 THEN '5:00 am'
+		WHEN h.hr = 6 THEN '6:00 am'
+		WHEN h.hr = 7 THEN '7:00 am'
+		WHEN h.hr = 8 THEN '8:00 am'
+		WHEN h.hr = 9 THEN '9:00 am'
+		WHEN h.hr = 10 THEN '10:00 am'
+		WHEN h.hr = 11 THEN '11:00 am'
+		WHEN h.hr = 12 THEN '12:00 pm'
+		WHEN h.hr = 13 THEN '1:00 pm'
+		WHEN h.hr = 14 THEN '2:00 pm'
+		WHEN h.hr = 15 THEN '3:00 pm'
+		WHEN h.hr = 16 THEN '4:00 pm'
+		WHEN h.hr = 17 THEN '5:00 pm'
+		WHEN h.hr = 18 THEN '6:00 pm'
+		WHEN h.hr = 19 THEN '7:00 pm'
+		WHEN h.hr = 20 THEN '8:00 pm'
+		WHEN h.hr = 21 THEN '9:00 pm'
+		WHEN h.hr = 22 THEN '10:00 pm'
+		WHEN h.hr = 23 THEN '11:00 pm'
+	END hr, total_trips, avg_total_price
+FROM
+	total_trips_cte t
+JOIN
+	avg_price_per_hour_cte h ON t.hr = h.hr
+
+
+
+
+-- Question 5 
+
+-- Find a correlation, if any, between tip amount and other numerical columns
+
+
+SELECT
+	CORR(tip_amount, trip_distance)
+FROM
+	taxi
+
+				
+
+SELECT
+	CORR(tip_amount, trip_time)
+FROM
+	taxi
+
+
+
+SELECT
+	CORR(tip_amount , passenger_count)
+FROM
+	taxi
+
+
+SELECT
+	CORR(tip_amount, total_amount)
+FROM
+	taxi
+	
+
+
+
+
+
+
+ -- Question 6
+
+-- Are weekends more busy? Do they have more passengers on weekends, assumably for traveling with friends/family
+
+
+SELECT
+	CASE 
+		WHEN EXTRACT(dow FROM lpep_pickup) = 0 THEN 'Sunday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 1 THEN 'Monday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 2 THEN 'Tuesday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 3 THEN 'Wednesday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 4 THEN 'Thursday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 5 THEN 'Friday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 6 THEN 'Saturday'
+	END as dow, passenger_count, COUNT(*) cnt_of_rides, SUM(COUNT(*)) OVER (PARTITION BY CASE 
+		WHEN EXTRACT(dow FROM lpep_pickup) = 0 THEN 'Sunday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 1 THEN 'Monday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 2 THEN 'Tuesday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 3 THEN 'Wednesday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 4 THEN 'Thursday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 5 THEN 'Friday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 6 THEN 'Saturday'
+	END) total_rides,
+	ROUND((COUNT(*)::numeric / (SUM(COUNT(*)) OVER (PARTITION BY CASE 
+		WHEN EXTRACT(dow FROM lpep_pickup) = 0 THEN 'Sunday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 1 THEN 'Monday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 2 THEN 'Tuesday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 3 THEN 'Wednesday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 4 THEN 'Thursday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 5 THEN 'Friday'
+		WHEN EXTRACT(dow FROM lpep_pickup) = 6 THEN 'Saturday'
+	END))::numeric) * 100, 2) pct_of_total
+FROM
+	taxi
+GROUP BY 
+	dow, passenger_count
+	
+
+
+-- Question 7
+
+-- What anomalies can you find in the data? Did taxi traffic or behavior deviate from the norm on a particular day/time or in a particular location?
+
+
+with zscore_cte as (
+	SELECT 
+		EXTRACT(day FROM lpep_pickup) day_of_month, 
+		COUNT(*) cnt_of_rides
+	FROM
+		taxi
+	GROUP BY
+		day_of_month
+), zscore_cte2 as (
+	SELECT
+		day_of_month, 
+		((cnt_of_rides - AVG(cnt_of_rides) OVER()) / (STDDEV(cnt_of_rides) OVER())) zscore
+	FROM
+		zscore_cte
+)
+SELECT
+	*
+FROM
+	zscore_cte2
+WHERE
+	zscore NOT BETWEEN -2.33 and 2.33
