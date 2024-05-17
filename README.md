@@ -1,9 +1,10 @@
-# taxi-project
+# Taxi Data Analysis
 
-## The project originated from Stratascratch's data projects with link below
+## The project's database and overall idea came from Stratascratch
 
 ### Stratascratch Link: https://platform.stratascratch.com/data-projects/nyc-taxi-data
+### NYC Data Dictionary: https://learn.microsoft.com/en-us/azure/open-datasets/dataset-taxi-green?tabs=azureml-opendatasets
 
-### What I want to learn from this project is data visualization (both in communication and Tableau), basic statistics, Python, and diagnostic/predictive data analysis. To further my coding learnings, I first cleaned and analyzed in PostgreSQL and then do the same cleaning and analysis in Jupyter Notebook.
+### What I want to learn from this project is data visualization with Tableau, SQL, and Python. 
 
 #### Firstly I have started by downloading the Jupyter Notebook extension in my vscode along with iPynb kernel extension needed to execute the code. I do this so I can decompress the bz2 file using pandas.
